@@ -268,21 +268,6 @@ This will:
 
 ## Citation
 
-If you use this code in your research, please cite:
-
-```bibtex
-@misc{sleepapnea2024,
-  author = {Riccardo},
-  title = {Sleep Apnea Detection using Pressure Mat and Machine Learning},
-  year = {2024},
-  publisher = {GitHub},
-  url = {https://github.com/yourusername/sleep-apnea-detection}
-}
-```
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
