@@ -73,20 +73,20 @@ sleep-apnea-detection/
 │                        DATA PREPROCESSING                               │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Step 1: Raw Data Loading                                               │
-│          └── Pressure mat (40 ch × 8 Hz) + Accelerometer (6 ch)        │
+│          └── Pressure mat (40 ch × 8 Hz) + Accelerometer (6 ch)         │
 │                                                                         │
 │  Step 2: Windowing (30-second windows)                                  │
-│          └── Label assignment (apnea vs non-apnea)                     │
+│          └── Label assignment (apnea vs non-apnea)                      │
 │                                                                         │
 │  Step 3: Feature Extraction                                             │
-│          └── Per-channel: mean, std, diff_std                          │
-│          └── Global: mean, std, min, max                               │
+│          └── Per-channel: mean, std, diff_std                           │
+│          └── Global: mean, std, min, max                                │
 │                                                                         │
 │  Step 4: Accelerometer Feature Extraction                               │
-│          └── Same statistics for 6 ACC channels                        │
+│          └── Same statistics for 6 ACC channels                         │
 │                                                                         │
-│  Step 5: Zone Aggregation (4×10 → 4 zones)                             │
-│          └── UL (Upper Left), UR, LL, LR                               │
+│  Step 5: Zone Aggregation (4×10 → 4 zones)                              │
+│          └── UL (Upper Left), UR, LL, LR                                │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -98,17 +98,17 @@ sleep-apnea-detection/
 │  Step 7: Baseline Model (Random Forest)                                 │
 │                                                                         │
 │  Step 8: Temporal Feature Engineering                                   │
-│          └── Delta (change from previous window)                       │
-│          └── Rolling mean/std (3-window)                               │
-│          └── Trend (deviation from rolling mean)                       │
+│          └── Delta (change from previous window)                        │
+│          └── Rolling mean/std (3-window)                                │
+│          └── Trend (deviation from rolling mean)                        │
 │                                                                         │
-│  Step 9: Feature Selection (SelectKBest, K=60)                         │
+│  Step 9: Feature Selection (SelectKBest, K=60)                          │
 │                                                                         │
 │  Step 10: RF + Temporal Features                                        │
 │                                                                         │
 │  Step 11: XGBoost + Temporal Features                                   │
 │                                                                         │
-│  Step 12: 5-Fold Cross-Validation (GroupKFold)                         │
+│  Step 12: 5-Fold Cross-Validation (GroupKFold)                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -118,13 +118,13 @@ The pressure mat uses a **4×10 channel grid** representing anatomical regions:
 
 ```
         A1   A2   A3   A4   A5   A6   A7   A8   A9   A10
-      ┌────────────────────┬────────────────────┐
+      ┌────────────────────┬─────────────────────────────┐
   D1  │  1    2    3    4  │  5    6    7    8    9   10 │  ← Shoulders
   D2  │ 11   12   13   14  │ 15   16   17   18   19   20 │  ← Mid torso
-      ├────────────────────┼────────────────────┤
+      ├────────────────────┼─────────────────────────────┤
   D3  │ 21   22   23   24  │ 25   26   27   28   29   30 │  ← Abdomen
   D4  │ 31   32   33   34  │ 35   36   37   38   39   40 │  ← Pelvis
-      └────────────────────┴────────────────────┘
+      └────────────────────┴─────────────────────────────┘
            Zone UL              Zone UR
            Zone LL              Zone LR
 ```
