@@ -22,8 +22,6 @@ Output files (in OUTPUT_DIR):
 - dataset_windows_30s_features_mat_acc.csv: MAT + ACC features merged
 - dataset_windows_30s_features_zones_CORRECTED.csv: Final dataset with zone aggregation
 
-Author: Riccardo (PhD Research)
-Date: 2024
 """
 
 import pandas as pd
