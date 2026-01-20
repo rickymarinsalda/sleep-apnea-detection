@@ -18,11 +18,20 @@ We evaluated our approach on two datasets: the original automatic-labeled datase
 
 | Model | ROC-AUC (CV) | F1-Score | Recall |
 |-------|-------------|----------|--------|
-| Baseline (zone features only) | 0.733 ± 0.057 | 0.33 | 23% |
+| Baseline | 0.733 ± 0.057 | 0.33 | 23% |
 | **RF + Temporal Features** | **0.901 ± 0.034** | **0.61** | **85%** |
 | XGBoost + Temporal Features | 0.862 ± 0.034 | 0.42 | 38% |
 
 > **Key achievement**: ROC-AUC > 0.90 with 85% recall using optimized temporal features on the manually-labeled dataset.
+
+#### What is the Baseline?
+
+The **Baseline model** is a Random Forest classifier trained using only the **static zone features** (50 features):
+- Global pressure statistics (mean, std, min, max)
+- Zone-aggregated features (UL, UR, LL, LR regions)
+- Accelerometer statistics
+
+The baseline does **NOT** include temporal features (delta, rolling statistics, trends). This allows us to measure the specific contribution of temporal feature engineering, which captures breathing dynamics over time and dramatically improves detection performance.
 
 ## Results Comparison
 
