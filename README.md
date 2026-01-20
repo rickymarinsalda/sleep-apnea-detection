@@ -12,34 +12,95 @@ This project implements an end-to-end solution for sleep apnea detection using:
 
 ### Key Results
 
-| Model | ROC-AUC (CV) | Improvement |
-|-------|-------------|-------------|
-| Baseline (zone features only) | 0.657 ± 0.073 | - |
-| **RF + Temporal Features** | **0.827 ± 0.079** | **+26.0%** |
-| **XGBoost + Temporal Features** | **0.830 ± 0.058** | **+26.3%** |
+We evaluated our approach on two datasets: the original automatic-labeled dataset and a manually-labeled dataset with more accurate annotations.
 
-> **Key finding**: Temporal features (delta, rolling statistics, trends) capture breathing dynamics and dramatically improve detection performance.
+#### Best Results (Manual Labels Dataset + Optimized Parameters)
 
-## Results
+| Model | ROC-AUC (CV) | F1-Score | Recall |
+|-------|-------------|----------|--------|
+| Baseline (zone features only) | 0.733 ± 0.057 | 0.33 | 23% |
+| **RF + Temporal Features** | **0.901 ± 0.034** | **0.61** | **85%** |
+| XGBoost + Temporal Features | 0.862 ± 0.034 | 0.42 | 38% |
 
-### ROC Curves Comparison
-![ROC Curves](results/roc_curves_CORRECTED.png)
+> **Key achievement**: ROC-AUC > 0.90 with 85% recall using optimized temporal features on the manually-labeled dataset.
+
+## Results Comparison
+
+### Original Dataset vs Manual Labels Dataset
+
+| Metric | Original Dataset | Manual Labels (Optimized) | Improvement |
+|--------|-----------------|---------------------------|-------------|
+| **ROC-AUC (CV)** | 0.827 ± 0.079 | **0.901 ± 0.034** | **+8.9%** |
+| **Stability (std)** | 0.079 | **0.034** | **-57%** |
+| Recall (single split) | 75% | **85%** | +13% |
+| Apnea events | 45 | 69 | +53% |
+
+### Manual Labels Dataset - Cross-Validation Results
+
+![CV Boxplot](results/manual_labels/cv_boxplot.png)
+
+![CV Per Fold](results/manual_labels/cv_per_fold.png)
+
+### ROC Curves (Manual Labels Dataset)
+![ROC Curves](results/manual_labels/roc_curves_CORRECTED.png)
 
 ### Confusion Matrices
-![Confusion Matrices](results/confusion_matrices_CORRECTED.png)
+![Confusion Matrices](results/manual_labels/confusion_matrices_CORRECTED.png)
 
-### Performance Summary
+### Single Split vs Cross-Validation
+![CV vs Single Split](results/manual_labels/cv_vs_single_split.png)
+
+## Hyperparameter Optimization
+
+We performed extensive hyperparameter tuning (480 configurations tested) to optimize performance on the manual labels dataset.
+
+### Optimization Results
+
+![Optimization Summary](results/manual_labels/6_optimization_summary.png)
+
+### Window Size Effect (Most Important Factor)
+
+![Window Size Effect](results/manual_labels/1_window_size_effect.png)
+
+### Heatmap: K Features vs Window Size
+
+![Heatmap K vs Window](results/manual_labels/3_heatmap_k_window.png)
+
+### Optimized Parameters
+
+| Parameter | Original Value | **Optimized Value** | Effect |
+|-----------|---------------|---------------------|--------|
+| K Features | 60 | **70** | +2% ROC-AUC |
+| Rolling Window | 3 (1.5 min) | **7 (3.5 min)** | +11% ROC-AUC |
+| Threshold | 0.30 | **0.25** | +15% Recall |
+
+> **Key insight**: Longer temporal windows (3.5 minutes vs 1.5 minutes) capture breathing dynamics more effectively, leading to significant performance improvements.
+
+## Performance Summary
+
+### Manual Labels Dataset (Optimized, K=70, Window=7)
 
 **Single Train/Test Split:**
 ```
 Model                             ROC-AUC   F1-Score  Precision  Recall
 ------------------------------------------------------------------------
-Baseline                           0.693     0.222     1.000     0.125
-RF + Temporal (K=60)               0.944     0.632     0.545     0.750
-XGBoost + Temporal (K=60)          0.913     0.588     0.556     0.625
+Baseline                           0.706     0.333     0.600     0.231
+RF + Temporal (K=70, W=7)          0.921     0.611     0.478     0.846
+XGBoost + Temporal                 0.824     0.417     0.455     0.385
 ```
 
 **5-Fold Cross-Validation (GroupKFold by subject):**
+```
+Model                          ROC-AUC (mean ± std)    Range
+------------------------------------------------------------
+Baseline                       0.733 ± 0.057          [0.65, 0.80]
+RF + Temporal                  0.901 ± 0.034          [0.86, 0.96]
+XGBoost + Temporal             0.862 ± 0.034          [0.82, 0.92]
+```
+
+### Original Dataset (for comparison)
+
+**5-Fold Cross-Validation:**
 ```
 Model                          ROC-AUC (mean ± std)
 ----------------------------------------------------
@@ -48,6 +109,30 @@ RF + Temporal                  0.827 ± 0.079
 XGBoost + Temporal             0.830 ± 0.058
 ```
 
+## Manual Labels Dataset
+
+The manual labels dataset represents a significant improvement in annotation quality:
+
+### What's Different
+
+1. **Manual annotation of apnea windows**: Each 30-second window was manually reviewed and labeled by domain experts, resulting in more accurate ground truth labels.
+
+2. **More apnea events identified**: 69 apnea events vs 45 in the original dataset (+53%), capturing previously missed events.
+
+3. **Better label consistency**: Manual review eliminated ambiguous or incorrectly labeled windows.
+
+4. **Improved model reliability**: The combination of accurate labels and optimized parameters results in:
+   - Higher ROC-AUC (0.901 vs 0.827)
+   - Lower variance across folds (std 0.034 vs 0.079)
+   - Better clinical applicability (85% recall)
+
+### Why Manual Labels Matter
+
+In sleep apnea detection, accurate labels are crucial because:
+- Apnea events can be subtle and borderline cases are common
+- Automatic labeling algorithms may miss or misclassify events
+- Clinical applications require high recall to avoid missing dangerous events
+
 ## Project Structure
 
 ```
@@ -55,15 +140,30 @@ sleep-apnea-detection/
 ├── README.md                 # This file
 ├── requirements.txt          # Python dependencies
 ├── src/
-│   ├── prepare_dataset.py    # Data preprocessing pipeline (Steps 1-5)
-│   ├── run_complete_analysis.py  # Full ML analysis (Steps 6-12)
+│   ├── prepare_dataset.py    # Data preprocessing pipeline
+│   ├── run_complete_analysis.py  # Full ML analysis
 │   ├── cross_validation_analysis.py  # Detailed CV analysis
-│   └── visualize_matrix_layout.py    # Sensor layout visualization
+│   ├── visualize_matrix_layout.py    # Sensor layout visualization
+│   └── manual_labels/        # Analysis with manually-labeled dataset
+│       ├── prepare_dataset_manual.py      # Preprocessing for manual labels
+│       ├── run_analysis_manual.py         # Optimized analysis (K=70, W=7)
+│       ├── hyperparameter_tuning.py       # HP optimization script
+│       └── visualize_tuning_results.py    # Tuning visualization
 ├── results/
-│   ├── roc_curves_CORRECTED.png
-│   └── confusion_matrices_CORRECTED.png
+│   ├── roc_curves_CORRECTED.png           # Original dataset results
+│   ├── confusion_matrices_CORRECTED.png
+│   └── manual_labels/                     # Manual labels dataset results
+│       ├── cv_boxplot.png
+│       ├── cv_per_fold.png
+│       ├── cv_vs_single_split.png
+│       ├── roc_curves_CORRECTED.png
+│       ├── confusion_matrices_CORRECTED.png
+│       ├── 1_window_size_effect.png
+│       ├── 3_heatmap_k_window.png
+│       ├── 6_optimization_summary.png
+│       └── tuning_results_all.csv
 └── docs/
-    └── Firmware - Descrizione Protocollo v3.pdf  # Hardware documentation
+    └── Firmware - Descrizione Protocollo v3.pdf
 ```
 
 ## Pipeline Architecture
@@ -99,10 +199,10 @@ sleep-apnea-detection/
 │                                                                         │
 │  Step 8: Temporal Feature Engineering                                   │
 │          └── Delta (change from previous window)                        │
-│          └── Rolling mean/std (3-window)                                │
+│          └── Rolling mean/std (7-window = 3.5 minutes)  ← OPTIMIZED     │
 │          └── Trend (deviation from rolling mean)                        │
 │                                                                         │
-│  Step 9: Feature Selection (SelectKBest, K=60)                          │
+│  Step 9: Feature Selection (SelectKBest, K=70)          ← OPTIMIZED     │
 │                                                                         │
 │  Step 10: RF + Temporal Features                                        │
 │                                                                         │
@@ -147,16 +247,16 @@ The pressure mat uses a **4×10 channel grid** representing anatomical regions:
 ### Temporal Features (52 features) - KEY INNOVATION
 For 13 base features, we compute:
 - **Delta**: `f(t) - f(t-1)` - Change from previous 30s window
-- **Rolling mean**: 3-window moving average (90 seconds)
-- **Rolling std**: 3-window moving standard deviation
+- **Rolling mean**: 7-window moving average (3.5 minutes) ← OPTIMIZED
+- **Rolling std**: 7-window moving standard deviation
 - **Trend**: `f(t) - rolling_mean(t)` - Short-term deviation
 
-> These temporal features capture the **breathing dynamics** that precede and characterize apnea events, leading to dramatic performance improvements.
+> These temporal features capture the **breathing dynamics** that precede and characterize apnea events. The optimized 7-window (3.5 minute) rolling statistics provide better context than the original 3-window approach.
 
 ### Feature Selection
 - **SelectKBest** with ANOVA F-statistic
-- **K=60** features selected (optimal from hyperparameter tuning)
-- **8/10 top features are temporal** - confirming their importance
+- **K=70** features selected (optimized from 60)
+- Top features are predominantly temporal (rolling std, delta, trend)
 
 ## Installation
 
@@ -175,86 +275,92 @@ pip install -r requirements.txt
 
 ## Usage
 
-### 1. Data Preprocessing (if you have raw data)
+### 1. Data Preprocessing
 
+**Original dataset:**
 ```bash
 cd src
 python prepare_dataset.py
 ```
 
-This will:
-- Load raw pressure mat and accelerometer data
-- Create 30-second labeled windows
-- Extract statistical features
-- Aggregate into anatomical zones
-- Output: `preprocessing_output/dataset_windows_30s_features_zones_CORRECTED.csv`
+**Manual labels dataset:**
+```bash
+cd src/manual_labels
+python prepare_dataset_manual.py
+```
 
 ### 2. Run Complete Analysis
 
+**Original dataset:**
 ```bash
 python run_complete_analysis.py
 ```
 
-This will:
-- Train baseline and temporal models
-- Compare RF vs XGBoost
-- Run 5-fold cross-validation
-- Generate visualizations in `results_analysis/`
-
-### Expected Output
-
+**Manual labels dataset (optimized):**
+```bash
+cd src/manual_labels
+python run_analysis_manual.py
 ```
-================================================================================
-                            FINAL SUMMARY
-================================================================================
 
-📊 Single Train/Test Split Performance:
-  Model                             ROC-AUC   F1-Score  Precision  Recall
-  -------------------------------------------------------------------------
-  Baseline                           0.6929     0.2222     1.0000   0.1250
-  RF + Temporal (K=60)               0.9443     0.6316     0.5455   0.7500
-  XGBoost + Temporal (K=60)          0.9130     0.5882     0.5556   0.6250
+### 3. Hyperparameter Tuning (optional)
 
-📊 5-Fold Cross-Validation Performance:
-  Model                          ROC-AUC (mean±std)
-  --------------------------------------------------
-  Baseline                       0.6566 ± 0.0727
-  RF+Temporal                    0.8272 ± 0.0787
-  XGBoost+Temporal               0.8296 ± 0.0583
+```bash
+cd src/manual_labels
+python hyperparameter_tuning.py
+python visualize_tuning_results.py
 ```
 
 ## Model Configuration
+
+### Optimized Configuration (Manual Labels)
 
 | Parameter | Value |
 |-----------|-------|
 | Random Forest | 400 trees, min_samples_leaf=3 |
 | XGBoost | 400 estimators, max_depth=6, lr=0.1 |
-| Feature Selection | SelectKBest, K=60 |
+| Feature Selection | SelectKBest, **K=70** |
+| Rolling Window | **7 windows (3.5 minutes)** |
 | Class Balancing | Random oversampling (minority class) |
-| Classification Threshold | 0.30 (optimized for recall) |
+| Classification Threshold | **0.25** (optimized for recall) |
 | Cross-Validation | 5-fold GroupKFold (by subject) |
+
+### Original Configuration
+
+| Parameter | Value |
+|-----------|-------|
+| Feature Selection | SelectKBest, K=60 |
+| Rolling Window | 3 windows (1.5 minutes) |
+| Classification Threshold | 0.30 |
 
 ## Key Findings
 
-1. **Temporal features are critical**: 8/10 most important features are temporal (delta, rolling, trend)
+1. **Manual labels significantly improve results**: More accurate annotations lead to better and more stable models (ROC-AUC 0.901 vs 0.827)
 
-2. **Simple zone aggregation works well**: 4 anatomical zones (UL, UR, LL, LR) outperform complex zone schemes
+2. **Temporal window size is critical**: 7-window rolling statistics (3.5 min) outperform 3-window (1.5 min) by +11% ROC-AUC
 
-3. **XGBoost slightly more stable**: Similar mean performance to RF, but lower variance across CV folds
+3. **Temporal features are essential**: Rolling std and delta features dominate the top feature importance rankings
 
-4. **Subject-dependent performance**: CV range [0.70, 0.91] indicates significant inter-subject variability
+4. **High recall achieved**: 85% recall with optimized parameters - crucial for clinical applications
 
-5. **Single-split was optimistic**: Single split ROC-AUC 0.94 vs CV mean 0.83 - emphasizes importance of proper CV
+5. **Reduced variance**: Optimized model is more stable across subjects (std 0.034 vs 0.079)
+
+6. **RF outperforms XGBoost**: On manual labels dataset, RF achieves 0.901 vs XGBoost 0.862
 
 ## Dataset Information
 
+### Manual Labels Dataset (Primary)
+- **Subjects**: 23 participants
+- **Windows**: 581 (30-second each)
+- **Class distribution**:
+  - Non-apnea: 512 (88.1%)
+  - Apnea: 69 (11.9%)
+
+### Original Dataset
 - **Subjects**: 23 participants
 - **Windows**: 557 (30-second each)
 - **Class distribution**:
   - Non-apnea: 512 (91.9%)
   - Apnea: 45 (8.1%)
-- **Sampling rate**: 8 Hz (pressure mat)
-- **Window size**: 240 samples (30 seconds)
 
 ## Requirements
 
