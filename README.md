@@ -269,9 +269,23 @@ For 13 base features, we compute:
 
 ## Installation
 
+### 🪟 Windows Users
+
+**For detailed Windows installation instructions (especially for beginners), see:**
+- 📄 **[GUIDA_INSTALLAZIONE_WINDOWS.md](GUIDA_INSTALLAZIONE_WINDOWS.md)** - Complete step-by-step guide (Italian)
+- 📄 **[GUIDA_INSTALLAZIONE_WINDOWS.pdf](GUIDA_INSTALLAZIONE_WINDOWS.pdf)** - PDF version
+
+The guide covers:
+- ✅ **Anaconda installation** (recommended for beginners - no command line needed)
+- ✅ Python + pip installation
+- ✅ Google Colab (cloud-based, zero installation)
+- ✅ Troubleshooting common Windows issues
+
+### 🐧 Linux / macOS
+
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/sleep-apnea-detection.git
+git clone https://github.com/rickymarinsalda/sleep-apnea-detection.git
 cd sleep-apnea-detection
 
 # Create virtual environment
@@ -317,6 +331,74 @@ python run_analysis_manual.py
 cd src/manual_labels
 python hyperparameter_tuning.py
 python visualize_tuning_results.py
+```
+
+### 4. Train a Final Model for New Raw Data
+
+The analysis scripts above are designed for experiments and figures. For using the
+model on new subjects, train one final Random Forest + temporal-features model and
+save it as a local artifact:
+
+```bash
+python src/train_final_model.py
+```
+
+By default, this creates:
+
+```text
+models/rf_temporal_manual.joblib
+```
+
+The model artifact contains the trained Random Forest, the fitted feature selector,
+the selected feature names, the temporal window size, and the classification
+threshold. The `models/` directory is ignored by Git because it is a generated
+artifact derived from the local dataset.
+
+If you already have a trained `.joblib` file, you do not need to retrain the
+model. Either place it at the default path:
+
+```text
+models/rf_temporal_manual.joblib
+```
+
+or pass its path explicitly when running inference with `--model`.
+
+### 5. Predict Apnea Windows from New Raw MAT/ACC Files
+
+New raw files must follow the same format as the training raw files:
+
+- MAT CSV: `Time`, `Subject`, `Position`, `Status`, `ch1` ... `ch40`
+- ACC CSV: `Time_acc1`, `Subject`, `Position`, `Status`, `X1`, `Y1`, `Z1`, `X2`, `Y2`, `Z2`
+
+Run inference with:
+
+```bash
+python src/predict_raw.py \
+  --model models/rf_temporal_manual.joblib \
+  --mat path/to/new_MAT.csv \
+  --acc path/to/new_ACC.csv \
+  --output predictions/new_subjects_predictions.csv
+```
+
+The output CSV contains one row per 30-second window with:
+
+- `apnea_probability`: model probability for apnea
+- `predicted_label`: `1` for apnea, `0` for non-apnea
+- `prediction_threshold`: default threshold used for classification
+
+If the raw MAT file contains ground-truth `Status` labels, the script also prints
+evaluation metrics such as accuracy, precision, recall, F1-score, ROC-AUC, and the
+confusion matrix. If the new data are unlabeled, the script can classify the
+windows but cannot measure model quality against ground truth.
+
+To also save the generated window-level features:
+
+```bash
+python src/predict_raw.py \
+  --mat path/to/new_MAT.csv \
+  --acc path/to/new_ACC.csv \
+  --output predictions/new_subjects_predictions.csv \
+  --features-output predictions/new_subjects_features.csv
 ```
 
 ## Model Configuration

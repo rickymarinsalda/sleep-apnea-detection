@@ -37,6 +37,10 @@ data/
 preprocessing_output/
 results_analysis/
 
+# Local trained artifacts / inference outputs
+models/
+predictions/
+
 # Keep result images
 !results/*.png
 
